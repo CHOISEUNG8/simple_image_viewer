@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>제니스코퍼레이션 이미지 뷰어</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background-color: #f0f0f0;
+            font-family: Arial, sans-serif;
+        }
+        
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background-color: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 20px;
+        }
+        
+        .input-section {
+            margin-bottom: 20px;
+        }
+        
+        .url-textarea {
+            width: 100%;
+            height: 120px;
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-family: monospace;
+            font-size: 14px;
+            resize: vertical;
+            box-sizing: border-box;
+        }
+        
+        .url-textarea:focus {
+            outline: none;
+            border-color: #007bff;
+        }
+        
+        .button-group {
+            margin-top: 10px;
+            text-align: center;
+        }
+        
+        .btn {
+            padding: 10px 20px;
+            margin: 0 5px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+        }
+        
+        .btn-primary {
+            background-color: #007bff;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background-color: #0056b3;
+        }
+        
+        .btn-danger {
+            background-color: #dc3545;
+            color: white;
+        }
+        
+        .btn-danger:hover {
+            background-color: #c82333;
+        }
+        
+        .btn-secondary {
+            background-color: #6c757d;
+            color: white;
+        }
+        
+        .btn-secondary:hover {
+            background-color: #545b62;
+        }
+        
+        .image-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .image-item {
+            background-color: #f8f9fa;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            transition: transform 0.2s;
+        }
+        
+        .image-item:hover {
+            transform: translateY(-2px);
+        }
+        
+        .image-item img {
+            width: 100%;
+            height: 180px;
+            object-fit: cover;
+            display: block;
+        }
+        
+        .image-url {
+            padding: 8px;
+            font-size: 11px;
+            color: #666;
+            word-break: break-all;
+            background-color: white;
+            border-top: 1px solid #eee;
+        }
+        
+        .status {
+            text-align: center;
+            margin: 10px 0;
+            font-size: 14px;
+        }
+        
+        .status.success {
+            color: #28a745;
+        }
+        
+        .status.error {
+            color: #dc3545;
+        }
+        
+        .status.info {
+            color: #17a2b8;
+        }
+        
+        .example-text {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🖼️ 제니스코퍼레이션 이미지 뷰어</h1>
+        
+        <div class="input-section">
+            <textarea 
+                id="urlTextarea" 
+                class="url-textarea" 
+                placeholder="이미지 URL들을 한 줄에 하나씩 입력하세요:
+
+예시:
+https://ai.esmplus.com/worldbl/250624/c/1.jpg
+https://ai.esmplus.com/worldbl/250624/c/3.jpg
+https://ai.esmplus.com/worldbl/250624/c/4.jpg"></textarea>
+            
+            <div class="example-text">
+                💡 팁: 각 URL을 새 줄에 입력하면 여러 이미지를 한번에 추가할 수 있습니다.
+            </div>
+            
+            <div class="button-group">
+                <button id="loadBtn" class="btn btn-primary">이미지 로드</button>
+                <button id="clearBtn" class="btn btn-danger">모두 삭제</button>
+                <button id="exampleBtn" class="btn btn-secondary">예시 로드</button>
+            </div>
+        </div>
+        
+        <div id="status" class="status"></div>
+        <div id="imageGrid" class="image-grid"></div>
+    </div>
+
+    <script>
+        class SimpleImageViewer {
+            constructor() {
+                this.images = [];
+                this.initElements();
+                this.bindEvents();
+            }
+            
+            initElements() {
+                this.urlTextarea = document.getElementById('urlTextarea');
+                this.loadBtn = document.getElementById('loadBtn');
+                this.clearBtn = document.getElementById('clearBtn');
+                this.exampleBtn = document.getElementById('exampleBtn');
+                this.imageGrid = document.getElementById('imageGrid');
+                this.status = document.getElementById('status');
+            }
+            
+            bindEvents() {
+                this.loadBtn.addEventListener('click', () => this.loadImages());
+                this.clearBtn.addEventListener('click', () => this.clearAllImages());
+                this.exampleBtn.addEventListener('click', () => this.loadExampleImages());
+                
+                // 붙여넣기 이벤트 처리 추가
+                this.urlTextarea.addEventListener('paste', (e) => this.handlePaste(e));
+            }
+            
+            showStatus(message, type = 'info') {
+                this.status.textContent = message;
+                this.status.className = `status ${type}`;
+                setTimeout(() => {
+                    this.status.textContent = '';
+                    this.status.className = 'status';
+                }, 3000);
+            }
+            
+            validateUrl(url) {
+                try {
+                    new URL(url.trim());
+                    return true;
+                } catch {
+                    return false;
+                }
+            }
+            
+            async loadImages() {
+                const urls = this.urlTextarea.value
+                    .split('\n')
+                    .map(url => url.trim())
+                    .filter(url => url.length > 0);
+                
+                if (urls.length === 0) {
+                    this.showStatus('이미지 URL을 입력해주세요.', 'error');
+                    return;
+                }
+                
+                const validUrls = urls.filter(url => this.validateUrl(url));
+                const invalidUrls = urls.filter(url => !this.validateUrl(url));
+                
+                if (invalidUrls.length > 0) {
+                    this.showStatus(`${invalidUrls.length}개의 잘못된 URL이 제외되었습니다.`, 'error');
+                }
+                
+                if (validUrls.length === 0) {
+                    this.showStatus('유효한 이미지 URL이 없습니다.', 'error');
+                    return;
+                }
+                
+                this.loadBtn.disabled = true;
+                this.loadBtn.textContent = '로딩 중...';
+                
+                let successCount = 0;
+                let failCount = 0;
+                
+                for (const url of validUrls) {
+                    try {
+                        await this.addImage(url);
+                        successCount++;
+                    } catch (error) {
+                        failCount++;
+                    }
+                }
+                
+                this.loadBtn.disabled = false;
+                this.loadBtn.textContent = '이미지 로드';
+                
+                if (successCount > 0) {
+                    this.showStatus(`${successCount}개의 이미지가 성공적으로 로드되었습니다.${failCount > 0 ? ` (${failCount}개 실패)` : ''}`, 'success');
+                } else {
+                    this.showStatus('이미지 로드에 실패했습니다.', 'error');
+                }
+            }
+            
+            async addImage(url) {
+                return new Promise((resolve, reject) => {
+                    const imageItem = document.createElement('div');
+                    imageItem.className = 'image-item';
+                    
+                    imageItem.innerHTML = `
+                        <img src="${url}" alt="이미지" />
+                        <div class="image-url">${url}</div>
+                    `;
+                    
+                    const img = imageItem.querySelector('img');
+                    
+                    img.onload = () => {
+                        this.imageGrid.appendChild(imageItem);
+                        this.images.push({ url, element: imageItem });
+                        resolve();
+                    };
+                    
+                    img.onerror = () => {
+                        reject(new Error(`이미지 로드 실패: ${url}`));
+                    };
+                });
+            }
+            
+            clearAllImages() {
+                if (this.images.length === 0) {
+                    this.showStatus('삭제할 이미지가 없습니다.', 'error');
+                    return;
+                }
+                
+                if (confirm('모든 이미지를 삭제하시겠습니까?')) {
+                    this.imageGrid.innerHTML = '';
+                    this.images = [];
+                    this.showStatus('모든 이미지가 삭제되었습니다.', 'success');
+                }
+            }
+            
+            loadExampleImages() {
+                const exampleUrls = [
+                    'https://ai.esmplus.com/worldbl/250624/c/1.jpg',
+                    'https://ai.esmplus.com/worldbl/250624/c/3.jpg',
+                    'https://ai.esmplus.com/worldbl/250624/c/4.jpg',
+                    'https://ai.esmplus.com/worldbl/250624/c/5.jpg',
+                    'https://ai.esmplus.com/worldbl/250624/c/6.gif',
+                    'https://ai.esmplus.com/worldbl/250624/c/7.jpg',
+                    'https://ai.esmplus.com/worldbl/250624/c/8.jpg',
+                    'https://ai.esmplus.com/worldbl/250624/c/10.jpg',
+                    'https://ai.esmplus.com/worldbl/250624/c/12.jpg',
+                    'https://ai.esmplus.com/worldbl/250624/c/15.jpg'
+                ];
+                
+                this.urlTextarea.value = exampleUrls.join('\n');
+                this.showStatus('예시 이미지 URL이 로드되었습니다. "이미지 로드" 버튼을 클릭하세요.', 'info');
+            }
+            
+            handlePaste(e) {
+                e.preventDefault();
+                
+                // 클립보드 데이터 가져오기
+                const clipboardData = e.clipboardData || window.clipboardData;
+                const pastedData = clipboardData.getData('text/html') || clipboardData.getData('text');
+                
+                // 임시 div 생성하여 HTML 파싱
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = pastedData;
+                
+                // 이미지 태그 찾기
+                const images = tempDiv.getElementsByTagName('img');
+                const existingText = this.urlTextarea.value;
+                
+                // 이미지 URL 추출
+                let newUrls = [];
+                for (const img of images) {
+                    const url = img.src;
+                    if (url) {
+                        newUrls.push(url);
+                    }
+                }
+                
+                // URL이 발견된 경우에만 처리
+                if (newUrls.length > 0) {
+                    // 기존 내용이 있으면 줄바꿈 추가
+                    const separator = existingText.length > 0 ? '\n' : '';
+                    this.urlTextarea.value = existingText + separator + newUrls.join('\n');
+                    this.showStatus(`${newUrls.length}개의 이미지 URL이 추출되었습니다.`, 'success');
+                } else {
+                    // 이미지 URL이 없으면 원본 텍스트 붙여넣기
+                    const originalText = clipboardData.getData('text');
+                    const separator = existingText.length > 0 ? '\n' : '';
+                    this.urlTextarea.value = existingText + separator + originalText;
+                }
+            }
+        }
+        
+        // 이미지 뷰어 초기화
+        const imageViewer = new SimpleImageViewer();
+    </script>
+</body>
+</html> 
